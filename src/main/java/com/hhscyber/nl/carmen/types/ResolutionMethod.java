@@ -10,5 +10,5 @@ package com.hhscyber.nl.carmen.types;
  *
  */
 public enum ResolutionMethod {
-	PLACE, COORDINATES, USER_LOCATION
+	PLACE, COORDINATES, USER_LOCATION,TIME_ZONE
 }
