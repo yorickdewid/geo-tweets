@@ -27,6 +27,9 @@ import org.apache.log4j.Logger;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import net.minidev.json.JSONArray;
@@ -228,8 +231,9 @@ public class LocationResolver {
     // Load files
     protected static void loadNameAndAbbreviation(String filename,
             HashSet<String> fullName,
-            HashMap<String, String> abbreviations, boolean secondColumnKey) throws FileNotFoundException {
-        Scanner inputScanner = new Scanner(new FileInputStream(filename), "UTF-8");
+            HashMap<String, String> abbreviations, boolean secondColumnKey) throws FileNotFoundException, UnsupportedEncodingException {
+        InputStream stream = LocationResolver.class.getResourceAsStream("/"+filename);
+        Scanner inputScanner = new Scanner(new InputStreamReader(stream,"UTF-8"));
         while (inputScanner.hasNextLine()) {
             String line = inputScanner.nextLine().toLowerCase();
             String[] splitString = line.split("\t");
@@ -504,7 +508,8 @@ public class LocationResolver {
      */
     protected HashMap<String, Integer> loadLocationToIdFile(String filename) throws IOException {
         HashMap<String, Integer> map = new HashMap<String, Integer>();
-        Scanner inputScanner = new Scanner(new FileInputStream(filename), "UTF-8");
+        InputStream stream = LocationResolver.class.getResourceAsStream(filename);
+        Scanner inputScanner = new Scanner(new InputStreamReader(stream,"UTF-8"));
         int lineNumber = 0;
         while (inputScanner.hasNextLine()) {
             lineNumber++;
@@ -532,8 +537,8 @@ public class LocationResolver {
     @SuppressWarnings("unchecked")
     protected void loadLocationFile(String filename) throws JsonParseException, JsonMappingException, IOException {
         ObjectMapper mapper = new ObjectMapper();
-
-        Scanner inputScanner = new Scanner(new FileInputStream(filename));
+         InputStream stream = LocationResolver.class.getResourceAsStream("/"+filename);
+        Scanner inputScanner = new Scanner(new InputStreamReader(stream,"UTF-8"));
         while (inputScanner.hasNextLine()) {
             String line = inputScanner.nextLine();
             Map<String, Object> locationObj = mapper.readValue(line, Map.class);

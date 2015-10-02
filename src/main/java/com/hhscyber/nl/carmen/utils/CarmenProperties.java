@@ -9,6 +9,7 @@ package com.hhscyber.nl.carmen.utils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.Hashtable;
@@ -74,9 +75,16 @@ public class CarmenProperties {
    */
   public static void load(String filename) throws IOException {
     logger.info("Reading CarmenProperty file [" + filename + "]");
-    if (properties == null) properties = new java.util.Properties();
-    properties.load(new InputStreamReader(new FileInputStream(new File(filename)), "UTF-8"));
-    isLoaded = true;
+    if (properties == null) properties = new java.util.Properties(); 
+    InputStream stream = CarmenProperties.class.getClassLoader().getResourceAsStream(filename);//usage in hadoop
+    if(stream == null){
+        System.out.println("null stream");
+        stream = CarmenProperties.class.getClassLoader().getResourceAsStream("carmen.properties"); // HADOOP
+        if(stream == null)
+        System.out.println("null stream");
+    }
+    properties.load(new InputStreamReader(stream, "UTF-8"));
+    isLoaded = true; 
   }
 
   public static double getDouble(String key) throws IOException {
