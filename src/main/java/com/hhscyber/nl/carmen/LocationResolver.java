@@ -442,11 +442,16 @@ public class LocationResolver {
             tweet = ((Map<String, Object>) o);
             if (tweet.containsKey(Constants.UTC_OFFSET)) {
                 if (tweet.get(Constants.UTC_OFFSET) != null) {
-                    secondsoffset = (int) tweet.get(Constants.UTC_OFFSET);
+                    String s = (String) tweet.get(Constants.UTC_OFFSET); // in hbase/hadoop this is a string in
+                    if(s !=  null)
+                    {
+                    secondsoffset = Integer.getInteger(s);
+                    }
                 }
             }
         }
-
+            
+        try{
         for (String id : ids) {
             TimeZone tz = TimeZone.getTimeZone(id);
             long seconds = TimeUnit.MILLISECONDS.toSeconds(tz.getRawOffset());
@@ -463,6 +468,11 @@ public class LocationResolver {
                 location = this.locationNameToLocation.get(city);
                 return getLocationForPlace(null, null, null, city, null, null);
             }
+        }
+        }catch(NullPointerException e)
+        {
+            logger.warn("Cannot resolve using timezone ");
+            return null;
         }
         return location;
 
