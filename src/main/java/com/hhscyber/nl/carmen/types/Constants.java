@@ -11,5 +11,6 @@ public class Constants {
 	public static final String TWEET_USER_LOCATION = "location";
 	public static final String COORDINATES = "coordinates";
         public static final String UTC_OFFSET = "utc_offset";
+        public static final String TIME_ZONE = "time_zone";
 	public static final int NEW_LOCATION_STARTING_INDEX = 1000000;
 }

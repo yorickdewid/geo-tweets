@@ -88,8 +88,8 @@ public class LocationResolverDemo {
                     Location location = resolver.resolveLocationFromTweet(tweet);
 
                     if (location != null) {
-                        logger.debug("Found location: " + location.toString());
                         numResolved++;
+                        System.out.println("Found location: " + location.toString());
                     }
                     if (writer != null) {
                         if (location != null) {
@@ -109,7 +109,7 @@ public class LocationResolverDemo {
             }
             scanner.close();
         }
-
+       
         logger.info("Resolved locations for " + numResolved + " of " + total + " tweets.");
     }
 

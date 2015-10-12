@@ -3,7 +3,6 @@
 // Mark Dredze, mdredze@cs.jhu.edu
 package com.hhscyber.nl.carmen;
 
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
@@ -32,9 +31,6 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
-import net.minidev.json.JSONArray;
-import net.minidev.json.JSONObject;
-import net.minidev.json.JSONValue;
 
 /**
  * This is the main class used by Carmen. A single instance is created (using
@@ -232,8 +228,8 @@ public class LocationResolver {
     protected static void loadNameAndAbbreviation(String filename,
             HashSet<String> fullName,
             HashMap<String, String> abbreviations, boolean secondColumnKey) throws FileNotFoundException, UnsupportedEncodingException {
-        InputStream stream = LocationResolver.class.getResourceAsStream("/"+filename);
-        Scanner inputScanner = new Scanner(new InputStreamReader(stream,"UTF-8"));
+        InputStream stream = LocationResolver.class.getResourceAsStream("/" + filename);
+        Scanner inputScanner = new Scanner(new InputStreamReader(stream, "UTF-8"));
         while (inputScanner.hasNextLine()) {
             String line = inputScanner.nextLine().toLowerCase();
             String[] splitString = line.split("\t");
@@ -427,14 +423,16 @@ public class LocationResolver {
 
         return null;
     }
+
     /**
-     *  NEEDS CHECK FOR DAYLIGHT SAVING? perhaps countrycode
+     * NEEDS CHECK FOR DAYLIGHT SAVING? perhaps countrycode
+     *
      * @param tweet
-     * @return 
+     * @return
      */
     public Location resolveLocationUsingTimeZone(Map<String, Object> tweet) {
-        Location location = null;
         int secondsoffset = 0;
+        String time_zone_city = "";
         String[] ids = TimeZone.getAvailableIDs();
         if (tweet.containsKey(Constants.TWEET_USER)) {
             Object o = Utils.getUserFromTweet(tweet);
@@ -442,40 +440,53 @@ public class LocationResolver {
             tweet = ((Map<String, Object>) o);
             if (tweet.containsKey(Constants.UTC_OFFSET)) {
                 if (tweet.get(Constants.UTC_OFFSET) != null) {
-                    String s = (String) tweet.get(Constants.UTC_OFFSET); // in hbase/hadoop this is a string in
-                    if(s !=  null)
-                    {
-                    secondsoffset = Integer.getInteger(s);
+                    if(tweet.get(Constants.UTC_OFFSET) instanceof String){
+                        String s = (String) tweet.get(Constants.UTC_OFFSET); // in hbase/hadoop this is a string in
+                        if (s != null) {
+                        secondsoffset = Integer.getInteger(s);
+                        }
+                    }
+                    else{
+                        int s = (int)tweet.get(Constants.UTC_OFFSET); // in hbase/hadoop this is a string in
+                        secondsoffset = s;
                     }
                 }
             }
-        }
-            
-        try{
-        for (String id : ids) {
-            TimeZone tz = TimeZone.getTimeZone(id);
-            long seconds = TimeUnit.MILLISECONDS.toSeconds(tz.getRawOffset());
-            if (secondsoffset == seconds) {
-                String s = getTimeZone(tz);
-                String ar[] = s.split("/");
-                s = ar[0]; // gmt and continent
-                String ar2[] = s.split(" "); //gmt and continent
-                //String continent = ar2[1]; usable??
-                String city = "";
-                if (ar.length > 1) {
-                    city = ar[1];
+            if (tweet.containsKey(Constants.TIME_ZONE)) {
+                String s = (String) tweet.get(Constants.TIME_ZONE); // in hbase/hadoop this is a string in
+                if (s != null) {
+                    time_zone_city = s;
+                    System.out.println("extracting time_zone city...\n");
                 }
-                location = this.locationNameToLocation.get(city);
-                return getLocationForPlace(null, null, null, city, null, null);
             }
         }
-        }catch(NullPointerException e)
-        {
+
+        try {
+            String backupCity = "";
+            for (String id : ids) {
+                TimeZone tz = TimeZone.getTimeZone(id);
+                long seconds = TimeUnit.MILLISECONDS.toSeconds(tz.getRawOffset());
+                if (secondsoffset == seconds) {
+                    String s = getTimeZone(tz);
+                    String ar[] = s.split("/");
+                    s = ar[0]; // gmt and continent
+                    String ar2[] = s.split(" "); //gmt and continent
+                    //String continent = ar2[1]; usable??
+                    String city = "";
+                    if (ar.length > 1) {
+                        backupCity = ar[1];
+                        if (city.toLowerCase().equals(time_zone_city.toLowerCase())) {
+                            city = ar[1];
+                            return getLocationForPlace(null, null, null, city.toLowerCase(), null, null);
+                        }
+                    }
+                }
+            }
+            return getLocationForPlace(null, null, null, backupCity.toLowerCase(), null, null);
+        } catch (NullPointerException e) {
             logger.warn("Cannot resolve using timezone ");
             return null;
         }
-        return location;
-
     }
 
     private String getTimeZone(TimeZone tz) {
@@ -519,7 +530,7 @@ public class LocationResolver {
     protected HashMap<String, Integer> loadLocationToIdFile(String filename) throws IOException {
         HashMap<String, Integer> map = new HashMap<String, Integer>();
         InputStream stream = LocationResolver.class.getResourceAsStream(filename);
-        Scanner inputScanner = new Scanner(new InputStreamReader(stream,"UTF-8"));
+        Scanner inputScanner = new Scanner(new InputStreamReader(stream, "UTF-8"));
         int lineNumber = 0;
         while (inputScanner.hasNextLine()) {
             lineNumber++;
@@ -547,8 +558,8 @@ public class LocationResolver {
     @SuppressWarnings("unchecked")
     protected void loadLocationFile(String filename) throws JsonParseException, JsonMappingException, IOException {
         ObjectMapper mapper = new ObjectMapper();
-         InputStream stream = LocationResolver.class.getResourceAsStream("/"+filename);
-        Scanner inputScanner = new Scanner(new InputStreamReader(stream,"UTF-8"));
+        InputStream stream = LocationResolver.class.getResourceAsStream("/" + filename);
+        Scanner inputScanner = new Scanner(new InputStreamReader(stream, "UTF-8"));
         while (inputScanner.hasNextLine()) {
             String line = inputScanner.nextLine();
             Map<String, Object> locationObj = mapper.readValue(line, Map.class);
