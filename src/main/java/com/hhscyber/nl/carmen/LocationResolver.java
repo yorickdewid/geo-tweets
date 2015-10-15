@@ -29,6 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
@@ -317,6 +318,72 @@ public class LocationResolver {
         return location;
     }
 
+    public ArrayList<Location> resolveLocationFromTweetCombineAll(Map<String, Object> tweet) {
+        ArrayList<Location> locations = new ArrayList<>();
+        Location provisionalLocation = null;
+        if (this.usePlace) {
+            Location location = resolveLocationUsingPlace(tweet);
+
+            if (location != null) {
+                location.setResolutionMethod(ResolutionMethod.PLACE);
+
+                if (!location.isKnownLocation()) {
+                    // The location is not known. Should we use it?
+                    if (this.useUnknownPlaces) // Yes, use it. Register a new location.
+                    {
+                        registerNewLocation(location);
+                    } else if (this.useKnownParentForUnknownPlaces) {
+                        // Don't use it, but try to find a known parent.
+                        Location parent = this.createParentOfLocation(location, false);
+                        location = null;
+                        while (parent != null && !parent.isKnownLocation()) {
+                            parent = this.createParentOfLocation(parent, false);
+                        }
+                        if (parent != null && parent.isKnownLocation()) {
+                            provisionalLocation = parent;
+                        }
+                        // Try to find a better place using another method before using the parent.
+                    } else // We can't find a known location.
+                    {
+                        location = null;
+                    }
+                }
+            }
+        }
+        if (this.useGeocodes) {
+            Location location = resolveLocationUsingGeocodes(tweet);
+            if (location != null) {
+                location.setResolutionMethod(ResolutionMethod.COORDINATES);
+                locations.add(location);
+            }
+        }
+
+        if (this.useUserString) {
+            Location location = resolveLocationUsingUserLocation(tweet);
+            if (location != null) {
+                location.setResolutionMethod(ResolutionMethod.USER_LOCATION);
+                locations.add(location);
+            }
+        }
+
+        if (this.useTimeZone) {
+            Location location = resolveLocationUsingTimeZone(tweet);
+            if (location != null) {
+                location.setResolutionMethod(ResolutionMethod.TIME_ZONE);
+                locations.add(location);
+            }
+        }
+
+        if (provisionalLocation != null) {
+            Location location = provisionalLocation;
+            if (location != null) {
+                locations.add(location);
+            }
+        }
+
+        return locations;
+    }
+
     protected Location resolveLocationUsingPlace(Map<String, Object> tweet) {
         Map<String, Object> place = Utils.getPlaceFromTweet(tweet);
         if (place == null) {
@@ -440,14 +507,13 @@ public class LocationResolver {
             tweet = ((Map<String, Object>) o);
             if (tweet.containsKey(Constants.UTC_OFFSET)) {
                 if (tweet.get(Constants.UTC_OFFSET) != null) {
-                    if(tweet.get(Constants.UTC_OFFSET) instanceof String){
+                    if (tweet.get(Constants.UTC_OFFSET) instanceof String) {
                         String s = (String) tweet.get(Constants.UTC_OFFSET); // in hbase/hadoop this is a string in
                         if (s != null) {
-                        secondsoffset = Integer.getInteger(s);
+                            secondsoffset = Integer.getInteger(s);
                         }
-                    }
-                    else{
-                        int s = (int)tweet.get(Constants.UTC_OFFSET); // in hbase/hadoop this is a string in
+                    } else {
+                        int s = (int) tweet.get(Constants.UTC_OFFSET); // in hbase/hadoop this is a string in
                         secondsoffset = s;
                     }
                 }
